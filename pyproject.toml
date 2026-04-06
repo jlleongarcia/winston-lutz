@@ -1,0 +1,11 @@
+[project]
+name = "winston-lutz"
+version = "0.1.0"
+description = "Winston-Lutz analysis webapp using pylinac and Streamlit"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "streamlit>=1.30",
+    "pylinac @ git+https://github.com/jlleongarcia/pylinac.git",
+    "pydicom>=2.4",
+]

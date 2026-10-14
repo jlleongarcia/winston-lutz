@@ -1,4 +1,5 @@
 import io
+import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +26,26 @@ def extract_date_from_dicom(dicom_dir: Path) -> str | None:
     return None
 
 
+@st.cache_resource(max_entries=5, show_spinner=False)
+def run_analysis(files: tuple[tuple[str, bytes], ...], bb_size_mm: float):
+    """Write uploads to a temp dir, analyse them and always clean the dir up.
+
+    Cached on file contents + BB size, so Streamlit reruns triggered by
+    unrelated widgets don't re-copy and re-analyse the images.
+    """
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        tmp_path = Path(tmp_dir)
+        for name, data in files:
+            (tmp_path / name).write_bytes(data)
+        dicom_date = extract_date_from_dicom(tmp_path)
+        wl = WinstonLutz(str(tmp_path))
+        wl.analyze(bb_size_mm=bb_size_mm)
+        return wl, dicom_date
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
 # ── Sidebar parameters ───────────────────────────────────────────────
 st.sidebar.header("Analysis parameters")
 bb_size = st.sidebar.number_input("BB size (mm)", min_value=1.0, max_value=20.0, value=8.0, step=0.5)
@@ -44,26 +65,17 @@ if len(uploaded_files) < 2:
     st.warning("At least 2 images are required for Winston-Lutz analysis.")
     st.stop()
 
-# ── Save uploads to a temp directory ─────────────────────────────────
-tmp_dir = tempfile.mkdtemp()
-tmp_path = Path(tmp_dir)
-for uf in uploaded_files:
-    (tmp_path / uf.name).write_bytes(uf.getvalue())
-
-# ── Try to extract date from the DICOM metadata ─────────────────────
-dicom_date = extract_date_from_dicom(tmp_path)
-analysis_date = dicom_date or datetime.now().strftime("%d-%m-%Y")
-
-st.sidebar.markdown(f"**Analysis date:** {analysis_date}")
-
 # ── Run analysis ─────────────────────────────────────────────────────
+files = tuple((uf.name, uf.getvalue()) for uf in uploaded_files)
 with st.spinner("Running Winston-Lutz analysis…"):
     try:
-        wl = WinstonLutz(str(tmp_path))
-        wl.analyze(bb_size_mm=bb_size)
+        wl, dicom_date = run_analysis(files, bb_size)
     except Exception as e:
         st.error(f"Analysis failed: {e}")
         st.stop()
+
+analysis_date = dicom_date or datetime.now().strftime("%d-%m-%Y")
+st.sidebar.markdown(f"**Analysis date:** {analysis_date}")
 
 # ── Results ──────────────────────────────────────────────────────────
 st.header("Results")

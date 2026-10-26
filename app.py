@@ -87,7 +87,7 @@ try:
     figs = wl.plotly_analyzed_images(show=False)
     for name, fig in figs.items():
         st.subheader(name)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 except Exception:
     # Fallback to matplotlib if plotly method unavailable
     import matplotlib

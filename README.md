@@ -12,10 +12,10 @@ A Streamlit web application for performing Winston-Lutz quality assurance analys
 
 ## Requirements
 
-- Python ≥ 3.13
-- [uv](https://docs.astral.sh/uv/) package manager
+- **Local:** Python ≥ 3.13 and the [uv](https://docs.astral.sh/uv/) package manager
+- **Container:** [Docker](https://docs.docker.com/get-docker/)
 
-## Getting started
+## Running locally with uv
 
 1. **Clone the repository:**
 
@@ -42,6 +42,33 @@ A Streamlit web application for performing Winston-Lutz quality assurance analys
    uv run python main.py 8080
    ```
 
+## Running with Docker
+
+The Docker image installs dependencies with `pip` from `requirements.txt` and doesn't use uv.
+
+1. **Build and start the container:**
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+   The app will be accessible at `http://localhost:8505`. The container always listens on port `8505`; to serve it on a different host port, change the left side of the `ports` mapping in `docker-compose.yml` (e.g. `"8080:8505"`).
+
+2. **Stop it:**
+
+   ```bash
+   docker compose down
+   ```
+
+## Updating dependencies
+
+`uv.lock` is the source of truth. After changing dependencies in `pyproject.toml`, relock and regenerate `requirements.txt` so the Docker image installs the same versions:
+
+```bash
+uv lock
+uv export --format requirements-txt --no-hashes --no-dev --no-emit-project --frozen -o requirements.txt
+```
+
 ## Usage
 
 1. Open the app in your browser.
@@ -55,6 +82,11 @@ A Streamlit web application for performing Winston-Lutz quality assurance analys
 ├── main.py                 # Entry point – launches Streamlit
 ├── app.py                  # Streamlit application
 ├── pyproject.toml          # Project metadata and dependencies
+├── uv.lock                 # Locked dependency versions (uv)
+├── requirements.txt        # Same versions exported for pip (Docker)
+├── Dockerfile              # Container image definition
+├── docker-compose.yml      # Deployment configuration
+├── .dockerignore           # Files excluded from the Docker build context
 └── .streamlit/
     └── config.toml         # Streamlit config (upload limit)
 ```

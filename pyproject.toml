@@ -7,5 +7,9 @@ requires-python = ">=3.13"
 dependencies = [
     "streamlit>=1.66.1",
     "pylinac @ git+https://github.com/jlleongarcia/pylinac.git@0f02c1b59dd87ec8f37a53e5274213317f3b17d5",
-    "pydicom>=2.4",
+    "pydicom>=3.0.2",
 ]
+
+[tool.uv]
+# pylinac caps pydicom<3 (aligned with upstream), but works with pydicom 3 for Winston-Lutz analysis
+override-dependencies = ["pydicom>=3.0.2"]

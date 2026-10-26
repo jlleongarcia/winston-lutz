@@ -13,9 +13,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install dependencies first so code changes don't invalidate this layer
+# Install dependencies first so code changes don't invalidate this layer.
+# --no-deps: requirements.txt is a complete pinned export of uv.lock, and pip would
+# otherwise reject the pydicom 3 override that conflicts with pylinac's pydicom<3 pin.
 COPY requirements.txt ./
-RUN pip install -r requirements.txt
+RUN pip install --no-deps -r requirements.txt
 
 COPY .streamlit ./.streamlit
 COPY app.py ./

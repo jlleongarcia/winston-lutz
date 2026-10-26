@@ -125,7 +125,7 @@ pydantic-core==2.41.5
     #   quaac
 pydeck==0.9.1
     # via streamlit
-pydicom==2.4.5
+pydicom==3.0.2
     # via
     #   pylinac
     #   winston-lutz

@@ -1,7 +1,7 @@
 services:
   winston-lutz:
+    image: ghcr.io/jlleongarcia/winston-lutz:latest
     build: .
-    image: winston-lutz
     container_name: winston-lutz
     ports:
       - "8505:8505"

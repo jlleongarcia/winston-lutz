@@ -46,7 +46,16 @@ A Streamlit web application for performing Winston-Lutz quality assurance analys
 
 The Docker image installs dependencies with `pip` from `requirements.txt` and doesn't use uv.
 
-1. **Build and start the container:**
+A multi-architecture image (`linux/amd64` and `linux/arm64`) is built by GitHub Actions and published to `ghcr.io/jlleongarcia/winston-lutz` on every push to `master`.
+
+1. **Start the container** using the published image:
+
+   ```bash
+   docker compose pull
+   docker compose up -d
+   ```
+
+   Or build the image locally instead:
 
    ```bash
    docker compose up -d --build
@@ -54,7 +63,14 @@ The Docker image installs dependencies with `pip` from `requirements.txt` and do
 
    The app will be accessible at `http://localhost:8505`. The container always listens on port `8505`; to serve it on a different host port, change the left side of the `ports` mapping in `docker-compose.yml` (e.g. `"8080:8505"`).
 
-2. **Stop it:**
+2. **Update to the latest image:**
+
+   ```bash
+   docker compose pull
+   docker compose up -d
+   ```
+
+3. **Stop it:**
 
    ```bash
    docker compose down
@@ -62,7 +78,7 @@ The Docker image installs dependencies with `pip` from `requirements.txt` and do
 
 ## Updating dependencies
 
-`uv.lock` is the source of truth. After changing dependencies in `pyproject.toml`, relock and regenerate `requirements.txt` so the Docker image installs the same versions:
+`uv.lock` is the source of truth. After changing dependencies in `pyproject.toml`, relock and regenerate `requirements.txt` so the Docker image installs the same versions (a GitHub Action fails if they drift apart):
 
 ```bash
 uv lock
@@ -87,6 +103,9 @@ uv export --format requirements-txt --no-hashes --no-dev --no-emit-project --fro
 ├── Dockerfile              # Container image definition
 ├── docker-compose.yml      # Deployment configuration
 ├── .dockerignore           # Files excluded from the Docker build context
+├── .github/workflows/
+│   ├── requirements-sync.yml   # Checks requirements.txt matches uv.lock
+│   └── docker-publish.yml      # Builds and publishes the multi-arch image
 └── .streamlit/
     └── config.toml         # Streamlit config (upload limit)
 ```

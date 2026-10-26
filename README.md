@@ -85,7 +85,7 @@ A multi-architecture image (`linux/amd64` and `linux/arm64`) is built by GitHub 
 #### How the image is built
 
 - **Base image:** `python:3.13-slim`, with `git` added to fetch the pylinac fork.
-- **Dependencies:** installed with `pip install --no-deps -r requirements.txt`. See [pydicom 3 override](#pydicom-3-override) for why `--no-deps` is used.
+- **Dependencies:** installed with `pip install --no-deps -r requirements.txt`. See [Why Docker installs with `--no-deps`](#why-docker-installs-with---no-deps).
 - **Process:** Streamlit runs directly as the main process (not through `main.py`), so it receives the stop signal from `docker stop` and shuts down cleanly.
 - **Security:** the app runs as a non-root user.
 - **Health check:** Docker polls Streamlit's `/_stcore/health` endpoint, so `docker ps` shows whether the app is healthy.
@@ -115,19 +115,66 @@ pylinac is installed from the [jlleongarcia/pylinac](https://github.com/jlleonga
 
 ### pydicom 3 override
 
-The pylinac fork keeps `pydicom>=2.0,<3`, the same constraint as upstream pylinac, so it can be merged upstream. Left alone, that cap would hold this app on pydicom 2.4.5, an older release line. This project overrides the cap in `pyproject.toml`:
+#### The problem
+
+This app and pylinac disagree about which pydicom versions are acceptable:
+
+- **pylinac** (the fork) requires `pydicom>=2.0,<3`. The fork deliberately keeps the same constraint as upstream pylinac so that it stays aligned with it and can be merged.
+- **This app** wants pydicom 3.
+
+Left alone, pylinac's `<3` cap wins, and the app is held on pydicom 2.4.5.
+
+#### Why this app uses pydicom 3
+
+- **pydicom 3 is the maintained release line.** New fixes and features, such as the reworked pixel-data handling, land there. pydicom 2.x is the older line.
+- **It keeps the app ready for future images.** Most EPID portal images are uncompressed, but the app should not be stuck on an old pydicom if compressed images appear. See the note on [compressed images](#compressed-images).
+- **It has been checked for this app.** The full Winston-Lutz workflow (analysis, Plotly figures and PDF report) was run with pylinac 3.50.0 and pydicom 3.0.2, and the results are identical to those with pydicom 2.4.5. Upstream pylinac does not test against pydicom 3, so this check covers only the Winston-Lutz module, which is the only one this app uses.
+
+#### How the override works
+
+Rather than changing pylinac, this project tells uv to replace pylinac's pydicom requirement with its own, in `pyproject.toml`:
 
 ```toml
 [tool.uv]
 override-dependencies = ["pydicom>=3.0.2"]
 ```
 
-- **Why:** pydicom 3 is the maintained release line and brings improved pixel-data handling, including for compressed images.
-- **Is it safe:** the full Winston-Lutz workflow (analysis, Plotly figures and PDF report) was checked with pylinac 3.50.0 and pydicom 3.0.2 and gives identical results to pydicom 2.4.5. Upstream pylinac does not test against pydicom 3, so other pylinac modules are not covered by this check.
-- **Effect on Docker:** pip only reads the dependency information in `requirements.txt` and does not know about uv overrides. It would see pylinac asking for `pydicom<3` and refuse to install. Because `requirements.txt` is a complete export of every package at an exact version, the Dockerfile installs it with `--no-deps`, which skips that check safely.
-- **When to remove it:** once pylinac allows pydicom 3, delete the `[tool.uv]` block, relock, and switch the Dockerfile back to a plain `pip install -r requirements.txt`.
+uv then ignores pylinac's `<3` cap, resolves pydicom 3.0.2, and records it in `uv.lock`. Because `requirements.txt` is exported from `uv.lock`, it pins `pydicom==3.0.2` too. The pylinac fork itself is untouched.
 
-> **Compressed images:** pydicom reads uncompressed pixel data on its own; most EPID portal images are uncompressed. Compressed formats (for example JPEG, JPEG-LS or JPEG 2000) also need a decoder package such as `pylibjpeg` with its plugins, or `gdcm`, whichever pydicom version is used. If you need to analyse compressed images, add the appropriate decoder to `pyproject.toml`.
+#### Why Docker installs with `--no-deps`
+
+The override is a uv feature. pip, which the Docker image uses, does not know about it.
+
+When pip installs a package, it reads two things:
+
+1. **The list you give it**, here `requirements.txt`, which asks for `pydicom==3.0.2`.
+2. **Each package's own declared requirements**, which pip checks for consistency. pylinac declares `pydicom<3`.
+
+These conflict, so a plain `pip install -r requirements.txt` stops with:
+
+```
+ERROR: Cannot install -r requirements.txt (line ...) and pydicom==3.0.2 because these package versions have conflicting dependencies.
+ERROR: ResolutionImpossible
+```
+
+`--no-deps` tells pip to install exactly the packages listed and not to process each package's own requirements. pip then installs pydicom 3.0.2 as `requirements.txt` asks.
+
+This is safe here because `requirements.txt` is not a hand-written list. It is generated from `uv.lock` and contains **every** package the app needs, including indirect ones, each at an exact version. pip has nothing left to work out, so the check that `--no-deps` skips adds nothing except the pydicom conflict. Two safeguards back this up:
+
+- The [requirements sync workflow](#cicd) fails if `requirements.txt` is edited by hand or falls out of step with `uv.lock`, so a package can't silently go missing.
+- The Docker build runs on every pull request, so an install problem shows up before it reaches `master`.
+
+#### When to remove the override
+
+Once pylinac allows pydicom 3:
+
+1. Delete the `[tool.uv]` block from `pyproject.toml`.
+2. [Regenerate the lock files](#updating-dependencies).
+3. Change the Dockerfile back to a plain `pip install -r requirements.txt`.
+
+#### Compressed images
+
+pydicom reads uncompressed pixel data on its own, and most EPID portal images are uncompressed. Compressed formats (for example JPEG, JPEG-LS or JPEG 2000) also need a decoder package, such as `pylibjpeg` with its plugins or `gdcm`, whichever pydicom version is used. pydicom 3 does not remove this need. If you need to analyse compressed images, add the appropriate decoder to `pyproject.toml`.
 
 ### Updating dependencies
 

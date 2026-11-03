@@ -890,7 +890,7 @@ wheels = [
 [[package]]
 name = "pylinac"
 version = "3.50.0"
-source = { git = "https://github.com/jlleongarcia/pylinac.git?rev=0f02c1b59dd87ec8f37a53e5274213317f3b17d5#0f02c1b59dd87ec8f37a53e5274213317f3b17d5" }
+source = { git = "https://github.com/jlleongarcia/pylinac.git?rev=42a6edae48bf2197b10c41d3ac64cd478acbf2a6#42a6edae48bf2197b10c41d3ac64cd478acbf2a6" }
 dependencies = [
     { name = "argue" },
     { name = "matplotlib" },
@@ -1473,6 +1473,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "pydicom", specifier = ">=3.0.2" },
-    { name = "pylinac", git = "https://github.com/jlleongarcia/pylinac.git?rev=0f02c1b59dd87ec8f37a53e5274213317f3b17d5" },
+    { name = "pylinac", git = "https://github.com/jlleongarcia/pylinac.git?rev=42a6edae48bf2197b10c41d3ac64cd478acbf2a6" },
     { name = "streamlit", specifier = ">=1.66.1" },
 ]

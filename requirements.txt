@@ -129,7 +129,7 @@ pydicom==3.0.2
     # via
     #   pylinac
     #   winston-lutz
-pylinac @ git+https://github.com/jlleongarcia/pylinac.git@0f02c1b59dd87ec8f37a53e5274213317f3b17d5
+pylinac @ git+https://github.com/jlleongarcia/pylinac.git@42a6edae48bf2197b10c41d3ac64cd478acbf2a6
     # via winston-lutz
 pyparsing==3.3.2
     # via matplotlib

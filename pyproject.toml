@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "streamlit>=1.66.1",
-    "pylinac @ git+https://github.com/jlleongarcia/pylinac.git@0f02c1b59dd87ec8f37a53e5274213317f3b17d5",
+    "pylinac @ git+https://github.com/jlleongarcia/pylinac.git@42a6edae48bf2197b10c41d3ac64cd478acbf2a6",
     "pydicom>=3.0.2",
 ]
 
